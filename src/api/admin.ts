@@ -1,5 +1,5 @@
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify'
-import { randomBytes } from 'crypto'
+import { randomBytes, timingSafeEqual } from 'crypto'
 import { prisma } from '../db'
 import { hashApiKey } from './auth'
 
@@ -19,7 +19,11 @@ function isAdminAuthorized(req: FastifyRequest): boolean {
   const supplied =
     (req.headers['x-admin-token'] as string | undefined) ??
     req.headers['authorization']?.replace(/^Bearer\s+/i, '')
-  return supplied === adminToken
+  if (!supplied) return false
+  const a = Buffer.from(supplied)
+  const b = Buffer.from(adminToken)
+  // Constant-time comparison (timingSafeEqual requires equal-length buffers).
+  return a.length === b.length && timingSafeEqual(a, b)
 }
 
 interface CreateKeyBody {
